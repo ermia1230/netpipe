@@ -1,0 +1,114 @@
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.SecureRandom;
+
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.spec.IvParameterSpec;
+/**
+ * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjödin
+ * at KTH. Additionally, there is a class called {@code SessionCipherTest} which tests the 
+ * functionality of the written code. 
+ * I have watched the youtube vodeo below to code this assginemnt:
+ * https://www.youtube.com/watch?v=LtUU8Q3rgjM
+ * I have also looked at:
+ * https://stackoverflow.com/questions/29267435/generating-random-iv-for-aes-in-java
+ * This class represents a session cipher.
+ */
+
+public class SessionCipher {
+    private SessionKey key;
+    private byte [] IV;
+    private int numberOfBits = 128;
+    private int bytesInBits = 8;
+    private Cipher cipher;
+    private final String cipherConfig = "AES/CTR/NoPadding";
+
+    /*
+     * Constructor to create a SessionCipher from a SessionKey. The IV is
+     * created automatically.
+     */
+    public SessionCipher(SessionKey key) {
+        try{
+        this.key = key;
+        this.IV = new byte[numberOfBits/bytesInBits];
+        generateIV();
+        this.cipher = Cipher.getInstance(cipherConfig);
+        }catch(Exception exception){
+            exception.printStackTrace();
+        }
+
+    }
+
+    private void generateIV(){
+        //Random random = new Random();
+        //random.nextBytes(IV);
+        try{
+            SecureRandom random = new SecureRandom();
+            random.nextBytes(this.IV);
+
+        }catch(Exception exception){
+            exception.printStackTrace();
+        }
+    }
+
+    /*
+     * Constructor to create a SessionCipher from a SessionKey and an IV,
+     * given as a byte array.
+     */
+
+    public SessionCipher(SessionKey key, byte[] ivbytes) {
+        if (ivbytes.length != 16) {
+            throw new IllegalArgumentException("IV should be 128 bits!");
+        }
+        try{
+            this.key = key;
+            this.IV = ivbytes;
+            this.cipher = Cipher.getInstance(cipherConfig);
+        }catch(Exception exception){
+            exception.printStackTrace();
+        }
+    }
+
+    /*
+     * Return the SessionKey
+     */
+    public SessionKey getSessionKey() {
+        return this.key;
+    }
+
+    /*
+     * Return the IV as a byte array
+     */
+    public byte[] getIVBytes() {
+        return this.IV;
+    }
+
+    /*
+     * Attach OutputStream to which encrypted data will be written.
+     * Return result as a CipherOutputStream instance.
+     */
+    CipherOutputStream openEncryptedOutputStream(OutputStream os) {
+        try {
+            cipher.init(Cipher.ENCRYPT_MODE, this.key.getSecretKey(), new IvParameterSpec(this.IV));
+            return new CipherOutputStream(os, cipher);
+        } catch (Exception exception){
+            throw new RuntimeException(exception);
+        }
+    }
+
+    /*
+     * Attach InputStream from which decrypted data will be read.
+     * Return result as a CipherInputStream instance.
+     */
+
+    CipherInputStream openDecryptedInputStream(InputStream inputstream) {
+        try {
+            cipher.init(Cipher.DECRYPT_MODE, this.key.getSecretKey(), new IvParameterSpec(this.IV));
+            return new CipherInputStream(inputstream, cipher);
+        } catch (Exception exception){
+            throw new RuntimeException(exception);
+        }
+    }
+}
