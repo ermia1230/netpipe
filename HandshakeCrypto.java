@@ -1,3 +1,4 @@
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -46,7 +47,7 @@ public class HandshakeCrypto {
 		try {
 			this.publicKey = handshakeCertificate.getCertificate().getPublicKey();
 		} catch (Exception exception) {
-			exception.printStackTrace();
+			throw exception;
 		}
 	}
 
@@ -55,20 +56,20 @@ public class HandshakeCrypto {
 	 * key.
 	 * The private key is given as a byte array in PKCS8/DER format.
 	 */
-	public HandshakeCrypto(byte[] keybytes) {
+	public HandshakeCrypto(byte[] keybytes) throws GeneralSecurityException {
 		try {
 			KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
 			PKCS8EncodedKeySpec PKCS8 = new PKCS8EncodedKeySpec(keybytes);
 			this.privateKey = keyFactory.generatePrivate(PKCS8);
 		} catch (NoSuchAlgorithmException | InvalidKeySpecException exception) {
-			exception.printStackTrace();
+			throw exception;
 		}
 	}
 
 	/*
 	 * Decrypt byte array with the key, return result as a byte array
 	 */
-	public byte[] decrypt(byte[] ciphertext) {
+	public byte[] decrypt(byte[] ciphertext) throws GeneralSecurityException {
 		try {
 			this.cipher = Cipher.getInstance(algorithm);
 			if (publicKey != null) {
@@ -79,15 +80,14 @@ public class HandshakeCrypto {
 			return this.cipher.doFinal(ciphertext);
 		} catch (NoSuchAlgorithmException | IllegalBlockSizeException | NoSuchPaddingException
 				| InvalidKeyException | BadPaddingException exception) {
-			exception.printStackTrace();
-			return null;
+			throw exception;
 		}
 	}
 
 	/*
 	 * Encrypt byte array with the key, return result as a byte array
 	 */
-	public byte[] encrypt(byte[] plaintext) {
+	public byte[] encrypt(byte[] plaintext) throws GeneralSecurityException {
 		try {
 			this.cipher = Cipher.getInstance(algorithm);
 			if (publicKey != null) {
@@ -98,8 +98,7 @@ public class HandshakeCrypto {
 			return cipher.doFinal(plaintext);
 		} catch (NoSuchAlgorithmException | IllegalBlockSizeException | NoSuchPaddingException
 				| InvalidKeyException | BadPaddingException exception) {
-			exception.printStackTrace();
-			return null;
+			throw exception;
 		}
 	}
 }

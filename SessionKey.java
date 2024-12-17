@@ -2,7 +2,6 @@
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
 
 /**
  * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjödin
@@ -21,13 +20,13 @@ class SessionKey {
     /*
      * Constructor to create a secret key of a given length
      */
-    public SessionKey(Integer length) {
+    public SessionKey(Integer length) throws NoSuchAlgorithmException {
         try{
             KeyGenerator key = KeyGenerator.getInstance("AES");
             key.init(length);
             this.secret = key.generateKey();
         }catch(NoSuchAlgorithmException exception){
-            exception.printStackTrace();
+            throw exception;
         }
     }
 
@@ -39,7 +38,7 @@ class SessionKey {
         try{
             this.secret = new SecretKeySpec(keybytes, "AES");           
         }catch (Exception exception){
-            exception.printStackTrace();
+            throw exception;
         }
     }
 

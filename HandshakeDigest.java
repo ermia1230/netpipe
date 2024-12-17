@@ -19,11 +19,11 @@ public class HandshakeDigest {
      * Constructor -- initialise a digest for SHA-256
      */
 
-    public HandshakeDigest() {
+    public HandshakeDigest() throws NoSuchAlgorithmException {
         try{
             this.messageDigest = MessageDigest.getInstance(algorithm);
         }catch(NoSuchAlgorithmException exception){
-            exception.printStackTrace();
+            throw exception;
         }
     }
 

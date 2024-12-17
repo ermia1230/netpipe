@@ -18,7 +18,7 @@ import java.util.Base64;
  */
 
 public class FileDigest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         if (args.length == 0) {
             System.out.println(" No filename provided.");
             System.exit(1);
@@ -27,7 +27,7 @@ public class FileDigest {
         try {
             System.out.println(generateFileHash(filename));   
         } catch (Exception exception) {
-            exception.printStackTrace();           
+            throw exception;           
           
         }
     }

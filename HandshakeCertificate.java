@@ -1,6 +1,4 @@
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
 import java.security.InvalidKeyException;
@@ -8,7 +6,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.SignatureException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -34,12 +31,12 @@ public class HandshakeCertificate {
      * The data is DER-encoded, in binary or Base64 encoding (PEM format).
      */
 
-    HandshakeCertificate(InputStream instream) {
+    HandshakeCertificate(InputStream instream) throws CertificateException {
         try{
         CertificateFactory x509CertificateFactory = CertificateFactory.getInstance(certificateType);
         this.certificate = (X509Certificate) x509CertificateFactory.generateCertificate(instream);
         }catch(CertificateException exception){
-            exception.printStackTrace();
+           throw exception;
         }
     }
 
@@ -47,25 +44,24 @@ public class HandshakeCertificate {
      * Constructor to create a certificate from its encoded representation
      * given as a byte array
      */
-    HandshakeCertificate(byte[] certbytes) {
+    HandshakeCertificate(byte[] certbytes) throws CertificateException {
         try{
             CertificateFactory x509CertificateFactory = CertificateFactory.getInstance(certificateType);
             this.certificate = (X509Certificate) x509CertificateFactory.generateCertificate(new ByteArrayInputStream(certbytes){
             });
             }catch(CertificateException exception){
-                exception.printStackTrace();
+                throw exception;
             }
     }
 
     /*
      * Return the encoded representation of certificate as a byte array
      */
-    public byte[] getBytes() {
+    public byte[] getBytes() throws CertificateEncodingException {
         try{
         return this.certificate.getEncoded();
         }catch(CertificateEncodingException exception){
-            exception.printStackTrace();
-            return null;
+            throw exception;
         }
     }
 

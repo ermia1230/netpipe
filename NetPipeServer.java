@@ -55,12 +55,40 @@ public class NetPipeServer {
         }
     }
 
+    private static void handshakeServerHello(Socket socket, String serverCertificate) throws IOException {
+        HandshakeMessage serverHello = new HandshakeMessage(HandshakeMessage.MessageType.SERVERHELLO);
+        serverHello.putParameter("Certificate", serverCertificate);
+        serverHello.send(socket);
+        System.out.println("ServerHello sent to the client.");
+    }
+
+    /*
+    * The IDE was screaming about ClassNotFoundException, just put it here. No problem when using terminal
+    * HandshakeMessage serverHello = HandshakeMessage.recv(socket);
+    */
+    private static String handshakeClientHelloRec(Socket socket) throws IOException, ClassNotFoundException{ 
+        HandshakeMessage clientrHello = HandshakeMessage.recv(socket);
+        System.out.println("Received ServerHello from the server.");
+        HandshakeMessage.MessageType messageType = clientrHello.getType();
+        String clientCertificate = clientrHello.getParameter("Certificate");
+        if (clientCertificate == null || messageType != HandshakeMessage.MessageType.CLIENTHELLO) {
+            throw new IOException("missing the Certificate parameter or type is not correct");
+        }
+        return clientCertificate;
+    }
+    private static void verifyClientCertificate(HandshakeCertificate clientCert, String caCertificatePath) throws Exception{
+        FileInputStream file = new FileInputStream(caCertificatePath);
+        HandshakeCertificate caCertificate = new HandshakeCertificate(file);
+        clientCert.verify(caCertificate);
+        System.out.println("client certificate is verified using CA's certificate");
+    }
+
     /*
      * Main program.
      * Parse arguments on command line, wait for connection from client,
      * and call switcher to switch data between streams.
      */
-    public static void main( String[] args) {
+    public static void main( String[] args) throws Exception{
         parseArgs(args);
         ServerSocket serverSocket = null;
 
@@ -83,6 +111,11 @@ public class NetPipeServer {
             System.exit(1);
         }
         try {
+            String serverCertificate = handshakeClientHelloRec(socket);
+            HandshakeCertificate serverCertificateDecoded = Utils.certificateDecode(serverCertificate);
+            verifyClientCertificate(serverCertificateDecoded, CaCertPath);
+            String clientCertificate = Utils.certificateEncode(serverCertPath);
+            handshakeServerHello(socket, clientCertificate);
             Forwarder.forwardStreams(System.in, System.out, socket.getInputStream(), socket.getOutputStream(), socket);
         } catch (IOException ex) {
             System.out.println("Stream forwarding error\n");

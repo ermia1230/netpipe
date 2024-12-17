@@ -29,14 +29,14 @@ public class SessionCipher {
      * Constructor to create a SessionCipher from a SessionKey. The IV is
      * created automatically.
      */
-    public SessionCipher(SessionKey key) {
+    public SessionCipher(SessionKey key) throws Exception {
         try{
         this.key = key;
         this.IV = new byte[numberOfBits/bytesInBits];
         generateIV();
         this.cipher = Cipher.getInstance(cipherConfig);
         }catch(Exception exception){
-            exception.printStackTrace();
+           throw exception;
         }
 
     }
@@ -49,7 +49,7 @@ public class SessionCipher {
             random.nextBytes(this.IV);
 
         }catch(Exception exception){
-            exception.printStackTrace();
+            throw exception;
         }
     }
 
@@ -58,7 +58,7 @@ public class SessionCipher {
      * given as a byte array.
      */
 
-    public SessionCipher(SessionKey key, byte[] ivbytes) {
+    public SessionCipher(SessionKey key, byte[] ivbytes) throws Exception {
         if (ivbytes.length != 16) {
             throw new IllegalArgumentException("IV should be 128 bits!");
         }
@@ -67,7 +67,7 @@ public class SessionCipher {
             this.IV = ivbytes;
             this.cipher = Cipher.getInstance(cipherConfig);
         }catch(Exception exception){
-            exception.printStackTrace();
+            throw exception;
         }
     }
 
