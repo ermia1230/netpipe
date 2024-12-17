@@ -33,6 +33,9 @@ public class NetPipeServer {
         System.err.println(indent + "Where options are:");
         indent += "    ";
         System.err.println(indent + "--port=<portnumber>");
+        System.err.println(indent + "--usercert=<filename>");
+        System.err.println(indent + "--cacert=<filename>");
+        System.err.println(indent + "--key=<filename>");
         System.exit(1);
     }
 
@@ -42,7 +45,9 @@ public class NetPipeServer {
     private static void parseArgs(String[] args) {
         arguments = new Arguments();
         arguments.setArgumentSpec("port", "portnumber");
-
+        arguments.setArgumentSpec("usercert", "server certificate file-path");
+        arguments.setArgumentSpec("cacert", "CA certificate file-path");
+        arguments.setArgumentSpec("key", "server private key file-path");
         try {
         arguments.loadArguments(args);
         } catch (IllegalArgumentException ex) {
@@ -60,7 +65,11 @@ public class NetPipeServer {
         ServerSocket serverSocket = null;
 
         int port = Integer.parseInt(arguments.get("port"));
+        String serverCertPath = arguments.get("usercert");
+        String CaCertPath = arguments.get("cacert");
+        String serverKeyPath = arguments.get("key");
         try {
+            //System.out.println( "usercert:  " + serverCertPath + " cacert: " +CaCertPath + " key: " + serverKeyPath );
             serverSocket = new ServerSocket(port);
         } catch (IOException ex) {
             System.err.printf("Error listening on port %d\n", port);

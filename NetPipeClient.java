@@ -34,6 +34,9 @@ public class NetPipeClient {
         indent += "    ";
         System.err.println(indent + "--host=<hostname>");
         System.err.println(indent + "--port=<portnumber>");
+        System.err.println(indent + "--usercert=<filename>");
+        System.err.println(indent + "--cacert=<filename>");
+        System.err.println(indent + "--key=<filename>");
         System.exit(1);
     }
 
@@ -44,7 +47,9 @@ public class NetPipeClient {
         arguments = new Arguments();
         arguments.setArgumentSpec("host", "hostname");
         arguments.setArgumentSpec("port", "portnumber");
-
+        arguments.setArgumentSpec("usercert", "client certificate file-path");
+        arguments.setArgumentSpec("cacert", "CA certificate file-path");
+        arguments.setArgumentSpec("key", "client private key file-path");
         try {
         arguments.loadArguments(args);
         } catch (IllegalArgumentException ex) {
@@ -63,7 +68,11 @@ public class NetPipeClient {
         parseArgs(args);
         String host = arguments.get("host");
         int port = Integer.parseInt(arguments.get("port"));
+        String clientCertPath = arguments.get("usercert");
+        String CaCertPath = arguments.get("cacert");
+        String clientKeyPath = arguments.get("key");
         try {
+            //System.out.println( "usercert: "+ clientCertPath + " cacert: " +CaCertPath + " key: " +clientKeyPath );
             socket = new Socket(host, port);
         } catch (IOException ex) {
             System.err.printf("Can't connect to server at %s:%d\n", host, port);
