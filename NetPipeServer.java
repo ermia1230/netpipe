@@ -1,6 +1,25 @@
 import java.net.*;
 import java.io.*;
 
+/**
+ * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjodin
+ * at KTH. This code represents a server program that establishes a connection with 
+ * {@code NetPipeClient} using a secure handshake protocol to authenticate both the server and 
+ * client. In addition, {@code NetPipeServer} and {@code NetPipeClient} negotiate 
+ * session parameters.
+ * 
+ * The handshake protocol is in plain-text. Hence, all the transferred data is encoded as text with 
+ * binary data. We use Base64-encoding for transferring the plain-text data.
+ * 
+ * After the handshake is done, a session is established, and {@code NetPipeServer} will send 
+ * data to {@code NetPipeClient} and receive data from {@code NetPipeClient}. In this way, 
+ * the connection between the {@code NetPipeServer} and {@code NetPipeClient} is secured.
+ * 
+ * These resources were used for guidance and further understanding:
+ * - 
+ */
+
+
 public class NetPipeServer {
     private static String PROGRAMNAME = NetPipeServer.class.getSimpleName();
     private static Arguments arguments;
