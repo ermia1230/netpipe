@@ -7,7 +7,7 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 /**
- * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjödin
+ * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjodin
  * at KTH. Additionally, there is a class called {@code SessionCipherTest} which tests the 
  * functionality of the written code. 
  * I have watched the youtube vodeo below to code this assginemnt:

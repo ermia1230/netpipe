@@ -1,4 +1,6 @@
 import java.net.*;
+import java.security.GeneralSecurityException;
+import java.util.Base64;
 import java.io.*;
 
 /**
@@ -19,10 +21,27 @@ import java.io.*;
  * - 
  */
 
-
 public class NetPipeServer {
     private static String PROGRAMNAME = NetPipeServer.class.getSimpleName();
     private static Arguments arguments;
+
+    private static class SessionData {
+        private byte[] sessionKey;
+        private byte[] sessionIV;
+
+        public SessionData(byte[] sessionKey, byte[] sessionIV) {
+            this.sessionKey = sessionKey;
+            this.sessionIV = sessionIV;
+        }
+
+        public byte[] getSessionKey() {
+            return sessionKey;
+        }
+
+        public byte[] getSessionIV() {
+            return sessionIV;
+        }
+    }
 
     /*
      * Usage: explain how to use the program, then exit with failure status
@@ -83,6 +102,35 @@ public class NetPipeServer {
         System.out.println("client certificate is verified using CA's certificate");
     }
 
+    private static SessionData sessionRec(Socket socket, HandshakeCrypto serverPrivateKey) throws IOException, ClassNotFoundException, GeneralSecurityException{ 
+        HandshakeMessage sessionMessage = HandshakeMessage.recv(socket);
+        System.out.println("Received ServerHello from the server.");
+        HandshakeMessage.MessageType messageType = sessionMessage.getType();
+        String SessionKey = sessionMessage.getParameter("SessionKey");
+        String SessionIV = sessionMessage.getParameter("SessionIV");
+        if (sessionMessage == null || messageType != HandshakeMessage.MessageType.SESSION || SessionKey == null || SessionIV == null ) {
+            throw new IOException("An error during the session exchange!");
+        }
+        byte[] SessionKeyDecoded = Base64.getDecoder().decode(SessionKey);
+        byte[] SessionIVDecoded = Base64.getDecoder().decode(SessionIV);
+        byte[] SessionKeyDecrypted = serverPrivateKey.decrypt(SessionKeyDecoded);
+        byte[] SessionIVDecrypted = serverPrivateKey.decrypt(SessionIVDecoded);
+        System.out.println("Session data recivied!");
+        return new SessionData(SessionKeyDecrypted, SessionIVDecrypted );
+    }
+    private static HandshakeCrypto readServerPrivateKey(String serverKeyPath) throws GeneralSecurityException, IOException {
+        try (FileInputStream fileInputStream = new FileInputStream(serverKeyPath);
+             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[2048];  
+            int bytesRead;
+            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                byteArrayOutputStream.write(buffer, 0, bytesRead);
+            }
+            byte[] serverPrivateKeyBytes = byteArrayOutputStream.toByteArray();
+            return new HandshakeCrypto(serverPrivateKeyBytes);
+        }
+    }
+
     /*
      * Main program.
      * Parse arguments on command line, wait for connection from client,
@@ -116,6 +164,10 @@ public class NetPipeServer {
             verifyClientCertificate(serverCertificateDecoded, CaCertPath);
             String clientCertificate = Utils.certificateEncode(serverCertPath);
             handshakeServerHello(socket, clientCertificate);
+            HandshakeCrypto serverPrivateKey = readServerPrivateKey(serverKeyPath);
+            SessionData sessionData = sessionRec(socket, serverPrivateKey);
+            System.out.println("Session Key: " + Base64.getEncoder().encodeToString(sessionData.getSessionKey()));
+            System.out.println("Session IV: " + Base64.getEncoder().encodeToString(sessionData.getSessionIV()));
             Forwarder.forwardStreams(System.in, System.out, socket.getInputStream(), socket.getOutputStream(), socket);
         } catch (IOException ex) {
             System.out.println("Stream forwarding error\n");

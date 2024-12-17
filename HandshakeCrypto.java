@@ -14,7 +14,7 @@ import javax.crypto.NoSuchPaddingException;
 
 /**
  * This code is written by Ermia Ghaffari, with the skeleton provided by Peter
- * Sjödin at KTH.
+ * Sjodin at KTH.
  * The {@code HandshakeCrypto} class is responsible for encryption and
  * decryption
  * using public and private keys during handshake operations.

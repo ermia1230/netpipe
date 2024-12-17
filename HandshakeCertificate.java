@@ -11,7 +11,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 /**
- * This code is written by Ermia Ghaffari, and the skeleton of the code was provided by Peter Sjödin at KTH.
+ * This code is written by Ermia Ghaffari, and the skeleton of the code was provided by Peter Sjodin at KTH.
  * Additionally, the {@code HandshakeCertificateTest} class is used to test the functionality of this code.
  * The following resources were referenced to gain insight into certificate handling in Java:
  * - https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/security/cert/CertificateFactory.html

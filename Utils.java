@@ -28,6 +28,13 @@ public class Utils {
             throw exception;
         }
     }
+    /**
+     * Loads a certificate from the specified file path, encodes it into a Base64 string 
+     * for text-based transmission.
+     * @param certificateFilePath The file path to the certificate file in PEM or DER format.
+     * @return A Base64-encoded string representing the certificate.
+     * @throws CertificateException
+     */
 
     public static HandshakeCertificate certificateDecode(String serverCertificateEncoded) throws Exception{
         try{

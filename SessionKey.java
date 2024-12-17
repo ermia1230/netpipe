@@ -4,7 +4,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjödin
+ * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjodin
  * at KTH. Additionally, there is a class called {@code SessionKeyTest} which tests the 
  * functionality of the written code. 
  * Note that the following resources were used to write the code:

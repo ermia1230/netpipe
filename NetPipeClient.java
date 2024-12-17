@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.Base64;
 
 /**
  * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjodin
@@ -23,6 +24,7 @@ import java.net.*;
 public class NetPipeClient {
     private static String PROGRAMNAME = NetPipeClient.class.getSimpleName();
     private static Arguments arguments;
+    private static final int AES_KEY_LENGTH = 128; 
 
     /*
      * Usage: explain how to use the program, then exit with failure status
@@ -86,6 +88,26 @@ public class NetPipeClient {
     }
 
 
+    private static void sendSession(Socket socket, HandshakeCertificate handshakeCertificate) throws Exception {
+        SessionKey sessionKey = new SessionKey(AES_KEY_LENGTH);
+        SessionCipher sessionCipher = new SessionCipher(sessionKey);
+        byte[] sessionKeyBytes = sessionKey.getKeyBytes();
+        byte[] sessionIVBytes = sessionCipher.getIVBytes();
+        HandshakeCrypto handshakeCrypto = new HandshakeCrypto(handshakeCertificate);
+        byte[] encryptedSessionKey = handshakeCrypto.encrypt(sessionKeyBytes);
+        byte[] encryptedSessionIV = handshakeCrypto.encrypt(sessionIVBytes);
+        String base64EncryptedSessionKey = Base64.getEncoder().encodeToString(encryptedSessionKey);
+        String base64EncryptedSessionIV = Base64.getEncoder().encodeToString(encryptedSessionIV);
+        HandshakeMessage sessionMessage = new HandshakeMessage(HandshakeMessage.MessageType.SESSION);
+        sessionMessage.putParameter("SessionKey", base64EncryptedSessionKey);
+        sessionMessage.putParameter("SessionIV", base64EncryptedSessionIV);
+        sessionMessage.send(socket);
+        System.out.println("SessionKey and SessionIV sent to the server.");
+        System.out.println(Base64.getEncoder().encodeToString(sessionKeyBytes));
+        System.out.println(Base64.getEncoder().encodeToString(sessionIVBytes));
+
+    }
+
     /*
      * Main program.
      * Parse arguments on command line, connect to server,
@@ -113,6 +135,7 @@ public class NetPipeClient {
             String serverCertificate = handshakeServerHelloRec(socket);
             HandshakeCertificate serverCertificateDecoded = Utils.certificateDecode(serverCertificate);
             verifyServerCertificate(serverCertificateDecoded, CaCertPath);
+            sendSession(socket,serverCertificateDecoded);
             Forwarder.forwardStreams(System.in, System.out, socket.getInputStream(), socket.getOutputStream(), socket);
         } catch (IOException ex) {
             System.out.println("Stream forwarding error\n");

@@ -2,7 +2,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjödin
+ * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjodin
  * at KTH. Additionally, there is a class called {@code HandshakeDigestTest} which tests the 
  * functionality of the written code.
  * These resources were used in order to get a better insight:
@@ -40,4 +40,4 @@ public class HandshakeDigest {
     public byte[] digest() {
         return messageDigest.digest();
     }
-};
+}

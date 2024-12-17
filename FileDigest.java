@@ -4,7 +4,7 @@ import java.nio.file.Paths;
 import java.util.Base64;
 
 /**
- * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjödin
+ * This code is written by Ermia Ghaffari, and the skeleton of the code is provided by Peter Sjodin
  * at KTH. Additionally, there is a class called {@code HandshakeDigestTest} which tests the 
  * functionality of the written code.
  * 
