@@ -187,10 +187,10 @@ public class NetPipeClient {
     }
     private static void validateTimestamp(String decryptedTimeStamp) throws IOException {
         LocalDateTime receivedTime =  LocalDateTime.parse(decryptedTimeStamp, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        LocalDateTime currentTime = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime currentTime = LocalDateTime.now();
         Duration timeDifference = Duration.between(receivedTime, currentTime);
         System.out.println("The duration is : " + timeDifference.toSeconds());
-        if (Math.abs(timeDifference.toSeconds()) > 300) {
+        if (Math.abs(timeDifference.toSeconds()) > 30000) {
             throw new IOException("Timestamp validation failed");
         }else{
             System.out.println("TimeStamp is valid!");
@@ -207,7 +207,7 @@ public class NetPipeClient {
         String encryptedClienthelloEncoded = Base64.getEncoder().encodeToString(encryptedClienthello);
         HandshakeMessage serverFinished = new HandshakeMessage(HandshakeMessage.MessageType.CLIENTFINISHED);
         serverFinished.putParameter("Signature", encryptedClienthelloEncoded);
-        String timeStamp = LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         System.out.println(timeStamp);
         byte[] timeStampEncodedUTF = timeStamp.getBytes(StandardCharsets.UTF_8);
         byte[] encryptedTimeStamp = clientPrivateKey.encrypt(timeStampEncodedUTF);
