@@ -25,7 +25,8 @@ import java.util.Base64;
  *
  * These resources were used for guidance and further understanding:
  * - https://stackoverflow.com/questions/22463062/how-can-i-parse-format-dates-with-localdatetime-java-8
- * - 
+ * - https://stackoverflow.com/questions/72111825/why-localdatetime-formatted-with-zone-offset
+ * - https://stackoverflow.com/questions/88838/how-to-convert-strings-to-and-from-utf8-byte-arrays-in-java
  */
 
 public class NetPipeClient {
