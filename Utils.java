@@ -1,5 +1,7 @@
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 /**
@@ -43,6 +45,18 @@ public class Utils {
         return serverCertificate;
         }catch(Exception exception){
             throw exception;
+        }
+    }
+    public static HandshakeCrypto readPrivateKey(String serverKeyPath) throws GeneralSecurityException, IOException {
+        try (FileInputStream fileInputStream = new FileInputStream(serverKeyPath);
+             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[2048];  
+            int bytesRead;
+            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                byteArrayOutputStream.write(buffer, 0, bytesRead);
+            }
+            byte[] serverPrivateKeyBytes = byteArrayOutputStream.toByteArray();
+            return new HandshakeCrypto(serverPrivateKeyBytes);
         }
     }
 }

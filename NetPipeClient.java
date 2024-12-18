@@ -85,11 +85,12 @@ public class NetPipeClient {
         }
     }
 
-    private static void handshakeClientHello(Socket socket, String clientCertificate) throws IOException {
+    private static HandshakeMessage handshakeClientHello(Socket socket, String clientCertificate) throws IOException {
         HandshakeMessage clientHello = new HandshakeMessage(HandshakeMessage.MessageType.CLIENTHELLO);
         clientHello.putParameter("Certificate", clientCertificate);
         clientHello.send(socket);
         System.out.println("ClientHello sent to the server.");
+        return clientHello;
     }
 
     /*
@@ -116,7 +117,7 @@ public class NetPipeClient {
     }
 
 
-    private static void sendSession(Socket socket, HandshakeCertificate handshakeCertificate) throws Exception {
+    private static HandshakeMessage sendSession(Socket socket, HandshakeCertificate handshakeCertificate) throws Exception {
         SessionKey sessionKey = new SessionKey(AES_KEY_LENGTH);
         SessionCipher sessionCipher = new SessionCipher(sessionKey);
         byte[] sessionKeyBytes = sessionKey.getKeyBytes();
@@ -133,6 +134,7 @@ public class NetPipeClient {
         System.out.println("SessionKey and SessionIV sent to the server.");
         //System.out.println(Base64.getEncoder().encodeToString(sessionKeyBytes));
         //System.out.println(Base64.getEncoder().encodeToString(sessionIVBytes));
+        return sessionMessage;
 
     }
     private static void serverFinishedRecVerify(Socket socket, HandshakeMessage excpectedServerFinished, HandshakeCertificate serverCertificate) throws IOException, GeneralSecurityException, ClassNotFoundException{
@@ -173,6 +175,26 @@ public class NetPipeClient {
         }
     }
 
+    private static void sendClientFinish(Socket socket, HandshakeCrypto clientPrivateKey, HandshakeMessage clinetHello, HandshakeMessage sessionMessage) throws GeneralSecurityException, IOException {
+        HandshakeDigest digest = new HandshakeDigest();
+        byte [] clientHelloToByte = clinetHello.getBytes();
+        byte [] sessionMessageToByte = sessionMessage.getBytes();
+        digest.update(clientHelloToByte);
+        digest.update(sessionMessageToByte);
+        byte [] encryptedClienthello = clientPrivateKey.encrypt(digest.digest());
+        String encryptedClienthelloEncoded = Base64.getEncoder().encodeToString(encryptedClienthello);
+        HandshakeMessage serverFinished = new HandshakeMessage(HandshakeMessage.MessageType.CLIENTFINISHED);
+        serverFinished.putParameter("Signature", encryptedClienthelloEncoded);
+        String timeStamp = LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        System.out.println(timeStamp);
+        byte[] timeStampEncodedUTF = timeStamp.getBytes(StandardCharsets.UTF_8);
+        byte[] encryptedTimeStamp = clientPrivateKey.encrypt(timeStampEncodedUTF);
+        String base64EncryptedTimeStamp = Base64.getEncoder().encodeToString(encryptedTimeStamp); 
+        serverFinished.putParameter("TimeStamp", base64EncryptedTimeStamp);
+        serverFinished.send(socket);
+        System.out.println("ServerFinished message sent to client.");
+    }
+
     /*
      * Main program.
      * Parse arguments on command line, connect to server,
@@ -196,13 +218,15 @@ public class NetPipeClient {
         }
         try {
             String clientCertificate = Utils.certificateEncode(clientCertPath);
-            handshakeClientHello(socket, clientCertificate);
+            HandshakeMessage clientHello = handshakeClientHello(socket, clientCertificate);
             ServerHelloResponse serverHelloRes = handshakeServerHelloRec(socket);
             String serverCertificate = serverHelloRes.getServerCertificate();
             HandshakeCertificate serverCertificateDecoded = Utils.certificateDecode(serverCertificate);
             verifyServerCertificate(serverCertificateDecoded, CaCertPath);
-            sendSession(socket,serverCertificateDecoded);
+            HandshakeMessage sessionMessage = sendSession(socket,serverCertificateDecoded);
             serverFinishedRecVerify(socket, serverHelloRes.getServerHello(), serverCertificateDecoded);
+            HandshakeCrypto clientPrivateKey = Utils.readPrivateKey(clientKeyPath);
+            sendClientFinish(socket,clientPrivateKey, clientHello, sessionMessage);
             Forwarder.forwardStreams(System.in, System.out, socket.getInputStream(), socket.getOutputStream(), socket);
         } catch (IOException ex) {
             System.out.println("Stream forwarding error\n");
