@@ -22,7 +22,8 @@ public class SessionCipher {
     private byte [] IV;
     private int numberOfBits = 128;
     private int bytesInBits = 8;
-    private Cipher cipher;
+    private Cipher encryptCipher;
+    private Cipher decryptCipher;
     private final String cipherConfig = "AES/CTR/NoPadding";
 
     /*
@@ -34,7 +35,11 @@ public class SessionCipher {
         this.key = key;
         this.IV = new byte[numberOfBits/bytesInBits];
         generateIV();
-        this.cipher = Cipher.getInstance(cipherConfig);
+        encryptCipher = Cipher.getInstance(cipherConfig);
+        encryptCipher.init(Cipher.ENCRYPT_MODE, key.getSecretKey(), new IvParameterSpec(this.IV));
+
+        decryptCipher = Cipher.getInstance(cipherConfig);
+        decryptCipher.init(Cipher.DECRYPT_MODE, key.getSecretKey(), new IvParameterSpec(this.IV));
         }catch(Exception exception){
            throw exception;
         }
@@ -65,7 +70,11 @@ public class SessionCipher {
         try{
             this.key = key;
             this.IV = ivbytes;
-            this.cipher = Cipher.getInstance(cipherConfig);
+            encryptCipher = Cipher.getInstance(cipherConfig);
+            encryptCipher.init(Cipher.ENCRYPT_MODE, key.getSecretKey(), new IvParameterSpec(this.IV));
+
+            decryptCipher = Cipher.getInstance(cipherConfig);
+            decryptCipher.init(Cipher.DECRYPT_MODE, key.getSecretKey(), new IvParameterSpec(this.IV));
         }catch(Exception exception){
             throw exception;
         }
@@ -89,12 +98,11 @@ public class SessionCipher {
      * Attach OutputStream to which encrypted data will be written.
      * Return result as a CipherOutputStream instance.
      */
-    CipherOutputStream openEncryptedOutputStream(OutputStream os) {
+    CipherOutputStream openEncryptedOutputStream(OutputStream os) throws Exception {
         try {
-            cipher.init(Cipher.ENCRYPT_MODE, this.key.getSecretKey(), new IvParameterSpec(this.IV));
-            return new CipherOutputStream(os, cipher);
-        } catch (Exception exception){
-            throw new RuntimeException(exception);
+            return new CipherOutputStream(os, encryptCipher);
+        } catch (Exception e) {
+            throw new Exception("Error", e);
         }
     }
 
@@ -103,12 +111,11 @@ public class SessionCipher {
      * Return result as a CipherInputStream instance.
      */
 
-    CipherInputStream openDecryptedInputStream(InputStream inputstream) {
+    CipherInputStream openDecryptedInputStream(InputStream inputstream) throws Exception {
         try {
-            cipher.init(Cipher.DECRYPT_MODE, this.key.getSecretKey(), new IvParameterSpec(this.IV));
-            return new CipherInputStream(inputstream, cipher);
-        } catch (Exception exception){
-            throw new RuntimeException(exception);
+            return new CipherInputStream(inputstream, decryptCipher);
+        } catch (Exception e) {
+            throw new Exception("Error", e);
         }
     }
 }
