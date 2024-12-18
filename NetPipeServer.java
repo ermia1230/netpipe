@@ -250,7 +250,12 @@ public class NetPipeServer {
             //System.out.println("Session IV: " + Base64.getEncoder().encodeToString(sessionData.getSessionIV()));
             sendServerFinish(socket, serverPrivateKey, serverHello);
             clientFinishedRecVerify(socket, sessionData.getSessionMessage(), clientHelloRes.getclientHello(), clientCertificateDecoded);
-            Forwarder.forwardStreams(System.in, System.out, socket.getInputStream(), socket.getOutputStream(), socket);
+            byte [] sessionKeyInBytes = sessionData.getSessionKey();
+            SessionKey sessionKey = new SessionKey(sessionKeyInBytes);
+            SessionCipher cipher = new SessionCipher(sessionKey, sessionData.getSessionIV());
+            InputStream input = cipher.openDecryptedInputStream(socket.getInputStream());
+            OutputStream output = cipher.openEncryptedOutputStream(socket.getOutputStream());
+            Forwarder.forwardStreams(System.in, System.out, input, output, socket);
         } catch (IOException ex) {
             System.out.println("Stream forwarding error\n");
             System.exit(1);

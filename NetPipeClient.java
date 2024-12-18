@@ -7,7 +7,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Base64;
 
 /**
@@ -49,6 +48,28 @@ public class NetPipeClient {
     
         public HandshakeMessage getServerHello() {
             return serverHello;
+        }
+    }
+    private static class SessionData {
+        private byte[] sessionKey;
+        private byte[] sessionIV;
+        HandshakeMessage sessionMessage;
+
+        public SessionData(byte[] sessionKey, byte[] sessionIV,HandshakeMessage sessionMessage ) {
+            this.sessionKey = sessionKey;
+            this.sessionIV = sessionIV;
+            this.sessionMessage = sessionMessage;
+        }
+
+        public byte[] getSessionKey() {
+            return sessionKey;
+        }
+
+        public byte[] getSessionIV() {
+            return sessionIV;
+        }
+        public HandshakeMessage getSessionMessage(){
+            return sessionMessage;
         }
     }
 
@@ -117,7 +138,7 @@ public class NetPipeClient {
     }
 
 
-    private static HandshakeMessage sendSession(Socket socket, HandshakeCertificate handshakeCertificate) throws Exception {
+    private static SessionData sendSession(Socket socket, HandshakeCertificate handshakeCertificate) throws Exception {
         SessionKey sessionKey = new SessionKey(AES_KEY_LENGTH);
         SessionCipher sessionCipher = new SessionCipher(sessionKey);
         byte[] sessionKeyBytes = sessionKey.getKeyBytes();
@@ -134,7 +155,7 @@ public class NetPipeClient {
         System.out.println("SessionKey and SessionIV sent to the server.");
         //System.out.println(Base64.getEncoder().encodeToString(sessionKeyBytes));
         //System.out.println(Base64.getEncoder().encodeToString(sessionIVBytes));
-        return sessionMessage;
+        return new SessionData(sessionKeyBytes, sessionIVBytes, sessionMessage);
 
     }
     private static void serverFinishedRecVerify(Socket socket, HandshakeMessage excpectedServerFinished, HandshakeCertificate serverCertificate) throws IOException, GeneralSecurityException, ClassNotFoundException{
@@ -223,11 +244,17 @@ public class NetPipeClient {
             String serverCertificate = serverHelloRes.getServerCertificate();
             HandshakeCertificate serverCertificateDecoded = Utils.certificateDecode(serverCertificate);
             verifyServerCertificate(serverCertificateDecoded, CaCertPath);
-            HandshakeMessage sessionMessage = sendSession(socket,serverCertificateDecoded);
+            SessionData sessionData = sendSession(socket,serverCertificateDecoded);
+            HandshakeMessage sessionMessage = sessionData.getSessionMessage();
             serverFinishedRecVerify(socket, serverHelloRes.getServerHello(), serverCertificateDecoded);
             HandshakeCrypto clientPrivateKey = Utils.readPrivateKey(clientKeyPath);
             sendClientFinish(socket,clientPrivateKey, clientHello, sessionMessage);
-            Forwarder.forwardStreams(System.in, System.out, socket.getInputStream(), socket.getOutputStream(), socket);
+            byte [] sessionKeyInBytes = sessionData.getSessionKey();
+            SessionKey sessionKey = new SessionKey(sessionKeyInBytes);
+            SessionCipher cipher = new SessionCipher(sessionKey, sessionData.getSessionIV());
+            InputStream input = cipher.openDecryptedInputStream(socket.getInputStream());
+            OutputStream output = cipher.openEncryptedOutputStream(socket.getOutputStream());
+            Forwarder.forwardStreams(System.in, System.out, input, output, socket);
         } catch (IOException ex) {
             System.out.println("Stream forwarding error\n");
             System.exit(1);
