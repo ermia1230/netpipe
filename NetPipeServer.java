@@ -1,5 +1,9 @@
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.io.*;
 
@@ -18,7 +22,9 @@ import java.io.*;
  * the connection between the {@code NetPipeServer} and {@code NetPipeClient} is secured.
  * 
  * These resources were used for guidance and further understanding:
- * - 
+ * - https://stackoverflow.com/questions/22463062/how-can-i-parse-format-dates-with-localdatetime-java-8
+ * - https://stackoverflow.com/questions/72111825/why-localdatetime-formatted-with-zone-offset
+ * - https://stackoverflow.com/questions/88838/how-to-convert-strings-to-and-from-utf8-byte-arrays-in-java
  */
 
 public class NetPipeServer {
@@ -74,11 +80,13 @@ public class NetPipeServer {
         }
     }
 
-    private static void handshakeServerHello(Socket socket, String serverCertificate) throws IOException {
+    private static HandshakeMessage handshakeServerHello(Socket socket, String serverCertificate) throws IOException {
         HandshakeMessage serverHello = new HandshakeMessage(HandshakeMessage.MessageType.SERVERHELLO);
         serverHello.putParameter("Certificate", serverCertificate);
         serverHello.send(socket);
         System.out.println("ServerHello sent to the client.");
+        //System.out.println(serverHello);
+        return serverHello;
     }
 
     /*
@@ -104,7 +112,7 @@ public class NetPipeServer {
 
     private static SessionData sessionRec(Socket socket, HandshakeCrypto serverPrivateKey) throws IOException, ClassNotFoundException, GeneralSecurityException{ 
         HandshakeMessage sessionMessage = HandshakeMessage.recv(socket);
-        System.out.println("Received ServerHello from the server.");
+        System.out.println("Received session from the client.");
         HandshakeMessage.MessageType messageType = sessionMessage.getType();
         String SessionKey = sessionMessage.getParameter("SessionKey");
         String SessionIV = sessionMessage.getParameter("SessionIV");
@@ -129,6 +137,26 @@ public class NetPipeServer {
             byte[] serverPrivateKeyBytes = byteArrayOutputStream.toByteArray();
             return new HandshakeCrypto(serverPrivateKeyBytes);
         }
+    }
+    /*
+    * Look at the refrence above for the timestamp creation and UTF_8.
+    */
+    private static void sendServerFinish(Socket socket, HandshakeCrypto serverPrivateKey, HandshakeMessage serverHello) throws GeneralSecurityException, IOException {
+        HandshakeDigest digest = new HandshakeDigest();
+        byte [] serverHelloToByte = serverHello.getBytes();
+        digest.update(serverHelloToByte);
+        byte [] encryptedServerhello = serverPrivateKey.encrypt(digest.digest());
+        String encryptedServerhelloEncoded = Base64.getEncoder().encodeToString(encryptedServerhello);
+        HandshakeMessage serverFinished = new HandshakeMessage(HandshakeMessage.MessageType.SERVERFINISHED);
+        serverFinished.putParameter("Signature", encryptedServerhelloEncoded);
+        String timeStamp = LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        System.out.println(timeStamp);
+        byte[] timeStampEncodedUTF = timeStamp.getBytes(StandardCharsets.UTF_8);
+        byte[] encryptedTimeStamp = serverPrivateKey.encrypt(timeStampEncodedUTF);
+        String base64EncryptedTimeStamp = Base64.getEncoder().encodeToString(encryptedTimeStamp); 
+        serverFinished.putParameter("TimeStamp", base64EncryptedTimeStamp);
+        serverFinished.send(socket);
+        System.out.println("ServerFinished message sent to client.");
     }
 
     /*
@@ -163,11 +191,12 @@ public class NetPipeServer {
             HandshakeCertificate serverCertificateDecoded = Utils.certificateDecode(serverCertificate);
             verifyClientCertificate(serverCertificateDecoded, CaCertPath);
             String clientCertificate = Utils.certificateEncode(serverCertPath);
-            handshakeServerHello(socket, clientCertificate);
+            HandshakeMessage serverHello = handshakeServerHello(socket, clientCertificate);
             HandshakeCrypto serverPrivateKey = readServerPrivateKey(serverKeyPath);
             SessionData sessionData = sessionRec(socket, serverPrivateKey);
-            System.out.println("Session Key: " + Base64.getEncoder().encodeToString(sessionData.getSessionKey()));
-            System.out.println("Session IV: " + Base64.getEncoder().encodeToString(sessionData.getSessionIV()));
+            //System.out.println("Session Key: " + Base64.getEncoder().encodeToString(sessionData.getSessionKey()));
+            //System.out.println("Session IV: " + Base64.getEncoder().encodeToString(sessionData.getSessionIV()));
+            sendServerFinish(socket, serverPrivateKey, serverHello);
             Forwarder.forwardStreams(System.in, System.out, socket.getInputStream(), socket.getOutputStream(), socket);
         } catch (IOException ex) {
             System.out.println("Stream forwarding error\n");
