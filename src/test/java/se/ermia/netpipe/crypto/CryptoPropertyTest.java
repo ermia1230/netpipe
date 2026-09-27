@@ -8,7 +8,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,18 +16,18 @@ public class CryptoPropertyTest {
     @Property
     public void testEncryptDecryptRoundtrip(@ForAll byte[] data) throws Exception {
         SessionKey key = new SessionKey(128);
-        SessionCipher cipher = new SessionCipher(key);
+        SessionCipher clientCipher = new SessionCipher(key, new byte[16], false);
 
         ByteArrayOutputStream encryptedOut = new ByteArrayOutputStream();
-        try (OutputStream cos = cipher.openEncryptedOutputStream(encryptedOut)) {
+        try (OutputStream cos = clientCipher.openEncryptedOutputStream(encryptedOut)) {
             cos.write(data);
         }
         
         byte[] ciphertext = encryptedOut.toByteArray();
         
-        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes());
+        SessionCipher serverCipher = new SessionCipher(key, clientCipher.getIVBytes(), true);
         ByteArrayInputStream bais = new ByteArrayInputStream(ciphertext);
-        try (InputStream cis = decryptCipher.openDecryptedInputStream(bais)) {
+        try (InputStream cis = serverCipher.openDecryptedInputStream(bais)) {
             byte[] decrypted = cis.readAllBytes();
             assertThat(decrypted).isEqualTo(data);
         }

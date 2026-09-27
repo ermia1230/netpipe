@@ -10,7 +10,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,7 +21,7 @@ public class SessionCipherTest {
     @Timeout(5)
     public void testEncryptDecryptRoundtrip() throws Exception {
         SessionKey key = new SessionKey(128);
-        SessionCipher cipher = new SessionCipher(key);
+        SessionCipher cipher = new SessionCipher(key, new byte[16], false);
 
         byte[] original = "hello secure world".getBytes();
         
@@ -34,7 +33,7 @@ public class SessionCipherTest {
         byte[] ciphertext = encryptedOut.toByteArray();
         assertThat(ciphertext).isNotEqualTo(original);
         
-        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes());
+        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes(), true);
         ByteArrayInputStream bais = new ByteArrayInputStream(ciphertext);
         try (InputStream cis = decryptCipher.openDecryptedInputStream(bais)) {
             byte[] decrypted = cis.readAllBytes();
@@ -46,7 +45,7 @@ public class SessionCipherTest {
     @Timeout(5)
     public void testBinaryData() throws Exception {
         SessionKey key = new SessionKey(128);
-        SessionCipher cipher = new SessionCipher(key);
+        SessionCipher cipher = new SessionCipher(key, new byte[16], false);
 
         byte[] original = new byte[]{0, (byte) 255, 127, -128, 5, 10, 20};
         
@@ -57,7 +56,7 @@ public class SessionCipherTest {
         
         byte[] ciphertext = encryptedOut.toByteArray();
         
-        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes());
+        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes(), true);
         ByteArrayInputStream bais = new ByteArrayInputStream(ciphertext);
         try (InputStream cis = decryptCipher.openDecryptedInputStream(bais)) {
             byte[] decrypted = cis.readAllBytes();
@@ -69,7 +68,7 @@ public class SessionCipherTest {
     @Timeout(5)
     public void testEmptyPayload() throws Exception {
         SessionKey key = new SessionKey(128);
-        SessionCipher cipher = new SessionCipher(key);
+        SessionCipher cipher = new SessionCipher(key, new byte[16], false);
 
         byte[] original = new byte[0];
         
@@ -80,7 +79,7 @@ public class SessionCipherTest {
         
         byte[] ciphertext = encryptedOut.toByteArray();
         
-        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes());
+        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes(), true);
         ByteArrayInputStream bais = new ByteArrayInputStream(ciphertext);
         try (InputStream cis = decryptCipher.openDecryptedInputStream(bais)) {
             byte[] decrypted = cis.readAllBytes();
@@ -92,7 +91,7 @@ public class SessionCipherTest {
     @Timeout(5)
     public void testLargePayload() throws Exception {
         SessionKey key = new SessionKey(128);
-        SessionCipher cipher = new SessionCipher(key);
+        SessionCipher cipher = new SessionCipher(key, new byte[16], false);
 
         byte[] original = new byte[100000]; // 100 KB
         for (int i = 0; i < original.length; i++) {
@@ -106,7 +105,7 @@ public class SessionCipherTest {
         
         byte[] ciphertext = encryptedOut.toByteArray();
         
-        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes());
+        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes(), true);
         ByteArrayInputStream bais = new ByteArrayInputStream(ciphertext);
         try (InputStream cis = decryptCipher.openDecryptedInputStream(bais)) {
             byte[] decrypted = cis.readAllBytes();
@@ -156,7 +155,7 @@ public class SessionCipherTest {
     @Timeout(5)
     public void testCorruptedCiphertext() throws Exception {
         SessionKey key = new SessionKey(128);
-        SessionCipher cipher = new SessionCipher(key);
+        SessionCipher cipher = new SessionCipher(key, new byte[16], false);
 
         byte[] original = "hello secure world".getBytes();
         
@@ -168,12 +167,11 @@ public class SessionCipherTest {
         byte[] ciphertext = encryptedOut.toByteArray();
         ciphertext[0] ^= 0xFF; // Corrupt first byte
         
-        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes());
+        SessionCipher decryptCipher = new SessionCipher(key, cipher.getIVBytes(), true);
         ByteArrayInputStream bais = new ByteArrayInputStream(ciphertext);
         try (InputStream cis = decryptCipher.openDecryptedInputStream(bais)) {
             byte[] decrypted = cis.readAllBytes();
             assertThat(decrypted).isNotEqualTo(original);
-            // CTR mode doesn't authenticate, so it just decrypts to garbage
         }
     }
 }

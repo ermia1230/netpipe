@@ -236,7 +236,7 @@ public class NetPipeServer {
             socket.setSoTimeout(0); // Remove handshake timeout for data phase
 
             SessionKey sessionKey = new SessionKey(sessionKeyBytes);
-            SessionCipher cipher = new SessionCipher(sessionKey, sessionIVBytes);
+            SessionCipher cipher = new SessionCipher(sessionKey, sessionIVBytes, true);
             InputStream decryptedIn = cipher.openDecryptedInputStream(socket.getInputStream());
             OutputStream encryptedOut = cipher.openEncryptedOutputStream(socket.getOutputStream());
 

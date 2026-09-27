@@ -1,12 +1,20 @@
 # Secure NetPipe
 
-A Java implementation of an encrypted, mutually authenticated client/server protocol over TCP. Secure NetPipe acts as an encrypted transport proxy: it authenticates both endpoints using X.509 certificates, exchanges an AES session key via RSA, and forwards stdin/stdout traffic over an AES-128-CTR encrypted TCP tunnel.
+[![CI](https://github.com/ermia1230/netpipe/actions/workflows/ci.yml/badge.svg)](https://github.com/ermia1230/netpipe/actions/workflows/ci.yml)
+
+Secure NetPipe is a custom encrypted transport proxy implemented in Java 17 over TCP sockets. It establishes a mutually authenticated, encrypted tunnel between a client and a server, forwarding standard input and output stream traffic.
+
+> ⚠️ **Educational Implementation**: This repository was created to study custom binary protocol design, state machine enforcement, Java Cryptography Architecture (JCA/JCE), and automated verification. It is **not** a replacement for standardized protocols such as TLS in production systems.
 
 ---
 
-## Overview & Architecture
+## Architecture & Protocol Design
 
-NetPipe uses a multi-stage handshake before transitioning a socket connection to encrypted stream forwarding.
+For detailed documentation, see the architectural specifications:
+- [Protocol Specification (`docs/protocol.md`)](docs/protocol.md)
+- [Architecture & Design Rationale (`docs/architecture.md`)](docs/architecture.md)
+
+### Handshake Sequence
 
 ```mermaid
 sequenceDiagram
@@ -18,39 +26,35 @@ sequenceDiagram
     Note over S: Verify Client Cert against CA
     S->>C: SERVERHELLO (Server X.509 Certificate)
     Note over C: Verify Server Cert against CA
-    Note over C: Generate AES-128 Key + IV
-    C->>S: SESSION (RSA-Encrypted SessionKey & SessionIV)
+    Note over C: Generate AES-128 Key + Base IV
+    C->>S: SESSION (RSA-Encrypted SessionKey & Base IV)
     Note over S: Decrypt Key & IV with RSA Private Key
     S->>C: SERVERFINISHED (RSA Signature + Encrypted Timestamp)
-    Note over C: Verify Digest Signature & Clock Skew (<= 300s)
+    Note over C: Verify Digest Signature & Freshness (<= 300s skew)
     C->>S: CLIENTFINISHED (RSA Signature + Encrypted Timestamp)
-    Note over S: Verify Digest Signature & Clock Skew (<= 300s)
-    Note over C,S: Secure AES-128-CTR Tunnel Established
-    C<<->>S: Bidirectional Encrypted Data Forwarding (stdin / stdout)
+    Note over S: Verify Digest Signature & Freshness (<= 300s skew)
+    Note over C,S: Directional AES-128-CTR Tunnel Established
+    C<<->>S: Bidirectional Encrypted Data Stream (stdin / stdout)
 ```
 
+---
+
+## Technical Features & Security Engineering
+
+- **TCP Framing & Memory Exhaustion Safeguards**: Handshake messages are framed with a 4-byte big-endian length prefix. Payload size is capped at 64 KB (`MAX_MESSAGE_SIZE = 65536`) to protect against memory exhaustion from malformed headers. Partial TCP reads are handled using `DataInputStream.readFully()`.
+- **Protocol State Machine**: Both endpoints enforce state transitions via a thread-safe `ProtocolStateMachine`. Out-of-order messages (e.g. receiving `SESSION` prior to `SERVERHELLO`) trigger `ProtocolStateException` and terminate the connection.
+- **Mutual Authentication**: X.509 certificates (DER/PEM) validated against a trusted CA including validity period verification (`checkValidity()`).
+- **Directional CTR Keystream Safety**: In AES-128-CTR mode, using identical (Key, IV) pairs for both directions creates a two-time pad vulnerability. NetPipe derives distinct directional IVs ($IV_{c2s} = IV$, $IV_{s2c} = IV \oplus 0x80$) to guarantee independent keystreams for client-to-server and server-to-client traffic.
+- **Timestamp Freshness Verification**: Handshake Finished messages contain encrypted ISO timestamps (`yyyy-MM-dd HH:mm:ss`) validated against a 300-second maximum clock skew window to ensure request freshness.
+- **Multithreaded Server**: `NetPipeServer` employs a cached thread pool to isolate client connections and clean up resources on disconnect.
 
 ---
 
-## Technical Highlights
-
-- **Framing & TCP Boundary Safety**: Handshake messages are serialized using a 4-byte big-endian length prefix. Payload size is capped at 64 KB (`MAX_MESSAGE_SIZE = 65536`) to protect against buffer overflow and DoS attacks. Partial reads are handled explicitly via `DataInputStream.readFully()`.
-- **Protocol State Machine**: Both client and server maintain a thread-safe `ProtocolStateMachine`. Invalid state transitions (e.g., receiving a `SESSION` message prior to `SERVERHELLO`) trigger `ProtocolStateException` and terminate the socket connection.
-- **Cryptographic Operations**:
-  - **Mutual Authentication**: X.509 certificates (DER/PEM) validated against a trusted Certificate Authority (CA) including validity period verification (`checkValidity()`).
-  - **Key Exchange**: RSA-2048 encryption of a randomly generated 128-bit AES session key and 16-byte Initialization Vector (IV).
-  - **Handshake Verification**: SHA-256 message digests signed with RSA private keys.
-  - **Replay Protection**: Encrypted ISO timestamps (`yyyy-MM-dd HH:mm:ss`) checked against a 300-second maximum clock skew window.
-  - **Data Encryption**: AES-128 in Counter Mode (`AES/CTR/NoPadding`), transforming the block cipher into a stream cipher for real-time bidirectional stream forwarding.
-- **Concurrency**: `NetPipeServer` utilizes a thread pool to handle multiple simultaneous client handshakes independently.
-
----
-
-## Repository Structure
+## Package Architecture
 
 ```text
 se.ermia.netpipe
-├── client          # NetPipeClient entry point & client-side orchestrator
+├── client          # NetPipeClient CLI entry point & client orchestrator
 ├── server          # NetPipeServer multithreaded server & connection handler
 ├── protocol        # HandshakeMessage, MessageType, ProtocolState, ProtocolStateMachine
 ├── crypto          # HandshakeCertificate, HandshakeCrypto, HandshakeDigest, SessionKey, SessionCipher
@@ -62,10 +66,9 @@ se.ermia.netpipe
 
 ---
 
-## Building and Running
+## Getting Started
 
 ### Prerequisites
-
 - Java 17+
 - Maven 3.8+ (or included `./mvnw`)
 - Docker & Docker Compose (optional)
@@ -80,9 +83,9 @@ se.ermia.netpipe
 ./mvnw checkstyle:check spotbugs:check pmd:check
 ```
 
-### Command Line Execution
+### Running Client & Server
 
-Generate or locate test certificates (found in `src/test/resources/certs/` for testing):
+Test certificates are provided in `src/test/resources/certs/` (generated strictly for local development and integration tests):
 
 **Start Server**:
 ```bash
@@ -108,21 +111,22 @@ docker compose up --build
 
 ---
 
-## Test Suite & Quality Assurance
+## Automated Test Suite & Quality Assurance
 
-The repository includes 60+ automated test cases:
+The project contains **62 automated tests**:
 
-- **Unit Tests (`src/test/java/.../*Test.java`)**: Isolated validation of RSA/AES wrappers, certificate parsing, message framing, digest computation, and state machine transitions using **JUnit 5** and **AssertJ**.
-- **Property-Based Tests (`*PropertyTest.java`)**: Invariant testing via **jqwik** verifying that `decrypt(encrypt(data)) == data` and `decode(encode(msg)) == msg` across thousands of generated inputs.
-- **Integration & Concurrency Tests (`src/test/java/.../*IT.java`)**: Real local socket handshakes using random port allocation, concurrent multi-client connections, and resilience tests for truncated frames, oversized payloads, and invalid certificate chains.
-- **Static Analysis & Coverage**: Enforced in Maven build via JaCoCo (coverage tracking), Checkstyle (formatting), SpotBugs (bytecode analysis), and PMD (source rules).
+- **53 Unit & Property Tests (`src/test/java/.../*Test.java`)**:
+  - JUnit 5 & AssertJ unit tests for RSA, AES-CTR, X.509 parsing, and protocol state transitions.
+  - Property-based tests via **jqwik** verifying invariants: `decrypt(encrypt(data)) == data` and `decode(encode(msg)) == msg` over 1,000 randomized iterations.
+- **7 Integration Tests (`src/test/java/.../*IT.java`)**: Real socket handshakes using dynamic port binding (`port 0`), concurrent multi-client connections, and failure recovery (truncated frames, bad certs, oversized messages).
+- **Code Quality Gates**: Enforced via Maven plugins with Checkstyle (formatting), SpotBugs (bytecode analysis), PMD (source analysis), and JaCoCo (coverage report output).
 
 ---
 
 ## Attribution & Credits
 
-- **Original Project Concept & Skeleton**: KTH Royal Institute of Technology / Prof. Peter Sjödin (IK2206 Internet Security and Privacy). Skeleton code provided starting points for `NetPipeClient`, `NetPipeServer`, `HandshakeMessage`, `Forwarder`, and `Arguments`.
-- **Implementation, Refactoring & Systems Infrastructure**: Completed by **Ermia Ghaffari**. Developed the cryptographic handshake, X.509 validation, AES-CTR stream piping, protocol state machine, custom exception hierarchy, unit/integration/property test suite, Docker/Compose setup, Maven build configuration, and CI/CD pipelines.
+- **Original Project Concept & Skeleton**: KTH Royal Institute of Technology / Prof. Peter Sjödin (IK2206 Internet Security and Privacy). Skeleton code provided initial structure for `NetPipeClient`, `NetPipeServer`, `HandshakeMessage`, `Forwarder`, and `Arguments`.
+- **Implementation & Infrastructure**: Completed by **Ermia Ghaffari**. Developed the cryptographic handshake, X.509 validation, directional AES-CTR stream piping, state machine enforcement, typed exception hierarchy, unit/integration/property test suite, Docker containerization, and CI/CD pipelines.
 
 ---
 

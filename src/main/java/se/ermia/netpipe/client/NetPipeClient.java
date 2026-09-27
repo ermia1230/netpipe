@@ -153,7 +153,7 @@ public class NetPipeClient {
             stateMachine.transition(ProtocolState.SECURE_CHANNEL_ESTABLISHED);
             socket.setSoTimeout(0); // Remove handshake timeout for data phase
 
-            SessionCipher dataCipher = new SessionCipher(sessionKey, sessionIVBytes);
+            SessionCipher dataCipher = new SessionCipher(sessionKey, sessionIVBytes, false);
             InputStream decryptedIn = dataCipher.openDecryptedInputStream(socket.getInputStream());
             OutputStream encryptedOut = dataCipher.openEncryptedOutputStream(socket.getOutputStream());
 

@@ -18,10 +18,10 @@ sequenceDiagram
     Client->>Server: Session (Encrypted Session Key & IV)
     Note over Server: Decrypt Session Key & IV
     Server->>Client: ServerFinished (Signature & Timestamp)
-    Note over Client: Verify Signature & Timestamp
+    Note over Client: Verify Signature & Freshness
     Client->>Server: ClientFinished (Signature & Timestamp)
-    Note over Server: Verify Signature & Timestamp
-    Note over Client, Server: Secure Channel Established (AES-128-CTR)
+    Note over Server: Verify Signature & Freshness
+    Note over Client, Server: Secure Channel Established (Directional AES-128-CTR)
 ```
 
 ## Protocol State Machine
@@ -83,7 +83,7 @@ All handshake messages are serialized via Java Object Serialization and framed w
 - **Type:** `SESSION`
 - **Parameters:**
   - `SessionKey`: AES-128 key encrypted with the recipient's RSA public key (Base64).
-  - `IV`: Initialization Vector encrypted with the recipient's RSA public key (Base64).
+  - `SessionIV`: Base Initialization Vector (IV) encrypted with the recipient's RSA public key (Base64).
 
 ### ServerFinished / ClientFinished
 - **Type:** `SERVERFINISHED` / `CLIENTFINISHED`
@@ -93,9 +93,10 @@ All handshake messages are serialized via Java Object Serialization and framed w
 
 ## Validation Mechanisms
 
-- **Timestamp Validation:** Prevents replay attacks. Max allowed clock skew is 300 seconds.
-- **Certificate Exchange:** Certificates are exchanged in DER format and encoded in Base64 for transport over the text-based property structure.
-- **Session Key Exchange:** The client generates a random AES-128 key and IV, encrypting them with the server's public key extracted from the `ServerHello` certificate.
+- **Timestamp Freshness Check:** Validates request freshness. Maximum allowed clock skew is 300 seconds.
+- **Directional CTR Keystream Safety:** Derives distinct directional IVs ($IV_{c2s} = IV$, $IV_{s2c} = IV \oplus 0x80$) to guarantee that client-to-server and server-to-client streams never reuse the same CTR keystream (eliminating two-time pad vulnerability).
+- **Certificate Verification:** Certificates are parsed in DER/PEM format and verified against the trusted CA (`certificate.verify(caPublicKey)`) alongside validity window verification (`certificate.checkValidity()`).
+- **Session Key Exchange:** The client generates a random AES-128 key and IV, encrypting them with the server's RSA public key.
 
 ## Error Handling
 
@@ -103,7 +104,7 @@ Protocol violations are detected by the `ProtocolStateMachine`. If an unexpected
 
 ## Security Considerations
 
-> **Note:** This protocol is designed for educational purposes.
-- **RSA Padding:** Uses RSA PKCS1v1.5 padding rather than the more secure OAEP padding.
+> **Note:** This protocol is designed for educational purposes. Real production systems should use TLS.
+- **RSA Padding:** Uses RSA PKCS1v1.5 padding rather than OAEP padding.
 - **Custom Signatures:** Implements custom signing using encryption with private keys rather than utilizing standard `java.security.Signature` APIs.
-- **Java Serialization:** Uses `ObjectInputStream`/`ObjectOutputStream` which carries inherent security risks if untrusted data is deserialized. In a production system, a secure serialization format like JSON, Protocol Buffers, or strict binary framing should be used.
+- **Java Serialization:** Uses `ObjectInputStream`/`ObjectOutputStream` which carries inherent security risks if untrusted data is deserialized.
