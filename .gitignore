@@ -16,3 +16,5 @@ hs_err_pid*
 .env
 .jqwik-database
 dependency-reduced-pom.xml
+# Keep test certificates (they contain no secrets)
+# Do NOT commit private production keys
