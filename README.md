@@ -2,8 +2,6 @@
 
 A Java implementation of an encrypted, mutually authenticated client/server protocol over TCP. Secure NetPipe acts as an encrypted transport proxy: it authenticates both endpoints using X.509 certificates, exchanges an AES session key via RSA, and forwards stdin/stdout traffic over an AES-128-CTR encrypted TCP tunnel.
 
-> **Disclaimer**: This is an educational networking and systems engineering project created to study custom binary protocol design, state machine enforcement, Java Cryptography Architecture (JCA/JCE), and automated verification. It is not a replacement for TLS in production systems.
-
 ---
 
 ## Overview & Architecture
@@ -31,23 +29,6 @@ sequenceDiagram
     C<<->>S: Bidirectional Encrypted Data Forwarding (stdin / stdout)
 ```
 
-### Protocol Pipeline
-
-```
-[ CLI / Config ] ──> [ Client / Server Orchestrator ]
-                            │
-                            ▼
-               [ Protocol State Machine ]
-                            │
-                            ▼
-          [ Length-Prefixed Message Framing ]
-                            │
-                            ▼
-                 [ Crypto Layer (JCA/JCE) ]
-                            │
-                            ▼
-                   [ TCP Socket / Streams ]
-```
 
 ---
 
