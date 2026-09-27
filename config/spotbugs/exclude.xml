@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!--
+        SpotBugs exclusion filter for Secure NetPipe.
+        Suppress specific false positives without hiding real bugs.
+    -->
+
+    <!-- HandshakeMessage extends Properties (serializable) by design -->
+    <Match>
+        <Class name="se.ermia.netpipe.protocol.HandshakeMessage"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+
+    <!-- Arguments extends Properties by design -->
+    <Match>
+        <Class name="se.ermia.netpipe.config.Arguments"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
+
+    <!-- Suppress serialization and equals warnings for Properties subclasses -->
+    <Match>
+        <Or>
+            <Class name="se.ermia.netpipe.protocol.HandshakeMessage"/>
+            <Class name="se.ermia.netpipe.config.Arguments"/>
+        </Or>
+        <Or>
+            <Bug pattern="SE_NO_SERIALVERSIONID"/>
+            <Bug pattern="EQ_DOESNT_OVERRIDE_EQUALS"/>
+        </Or>
+    </Match>
+
+    <!-- Suppress CT_CONSTRUCTOR_THROW across project (Java 17 constructor exceptions warning) -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
+    <!-- HandshakeCertificate returns underlying X509Certificate by design -->
+    <Match>
+        <Class name="se.ermia.netpipe.crypto.HandshakeCertificate"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+</FindBugsFilter>

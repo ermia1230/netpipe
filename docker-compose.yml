@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  netpipe-server:
+    build: .
+    command: ["se.ermia.netpipe.server.NetPipeServer", "--port=2206", "--usercert=/certs/server.pem", "--cacert=/certs/ca.pem", "--key=/certs/server-private.der"]
+    ports:
+      - "2206:2206"
+    volumes:
+      - ./src/test/resources/certs:/certs:ro
+    networks:
+      - netpipe-net
+
+  netpipe-client:
+    build: .
+    command: ["se.ermia.netpipe.client.NetPipeClient", "--host=netpipe-server", "--port=2206", "--usercert=/certs/client.pem", "--cacert=/certs/ca.pem", "--key=/certs/client-private.der"]
+    depends_on:
+      - netpipe-server
+    volumes:
+      - ./src/test/resources/certs:/certs:ro
+    networks:
+      - netpipe-net
+    stdin_open: true
+    tty: true
+
+networks:
+  netpipe-net:
+    driver: bridge

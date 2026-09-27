@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<ruleset name="NetPipe Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+                             https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>PMD ruleset for Secure NetPipe</description>
+
+    <!-- Best practices -->
+    <rule ref="category/java/bestpractices.xml">
+        <exclude name="JUnitTestsShouldIncludeAssert"/>
+        <exclude name="JUnitAssertionsShouldIncludeMessage"/>
+        <exclude name="GuardLogStatement"/>
+        <exclude name="SystemPrintln"/>
+        <exclude name="UseVarargs"/>
+    </rule>
+
+    <!-- Code style -->
+    <rule ref="category/java/codestyle.xml">
+        <exclude name="OnlyOneReturn"/>
+        <exclude name="AtLeastOneConstructor"/>
+        <exclude name="CommentDefaultAccessModifier"/>
+        <exclude name="DefaultPackage"/>
+        <exclude name="MethodArgumentCouldBeFinal"/>
+        <exclude name="LocalVariableCouldBeFinal"/>
+        <exclude name="ShortVariable"/>
+        <exclude name="LongVariable"/>
+        <exclude name="FieldNamingConventions"/>
+        <exclude name="ShortClassName"/>
+        <exclude name="ShortMethodName"/>
+        <exclude name="ClassNamingConventions"/>
+        <exclude name="CallSuperInConstructor"/>
+        <exclude name="UseUnderscoresInNumericLiterals"/>
+        <exclude name="PrematureDeclaration"/>
+        <exclude name="UselessParentheses"/>
+        <exclude name="AvoidUncheckedExceptionsInSignatures"/>
+    </rule>
+
+    <!-- Design -->
+    <rule ref="category/java/design.xml">
+        <exclude name="LawOfDemeter"/>
+        <exclude name="LoosePackageCoupling"/>
+        <exclude name="ExcessiveImports"/>
+        <exclude name="TooManyMethods"/>
+        <exclude name="CyclomaticComplexity"/>
+        <exclude name="NPathComplexity"/>
+        <exclude name="DataClass"/>
+        <exclude name="AvoidCatchingGenericException"/>
+        <exclude name="SignatureDeclareThrowsException"/>
+        <exclude name="GodClass"/>
+        <exclude name="ClassWithOnlyPrivateConstructorsShouldBeFinal"/>
+        <exclude name="NcssCount"/>
+    </rule>
+
+    <!-- Error prone -->
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="DataflowAnomalyAnalysis"/>
+        <exclude name="AvoidLiteralsInIfCondition"/>
+        <exclude name="AssignmentInOperand"/>
+        <exclude name="CloseResource"/>
+        <exclude name="EmptyCatchBlock"/>
+        <exclude name="MissingSerialVersionUID"/>
+        <exclude name="NullAssignment"/>
+        <exclude name="AvoidMessageDigestField"/>
+    </rule>
+
+    <!-- Performance -->
+    <rule ref="category/java/performance.xml"/>
+</ruleset>
