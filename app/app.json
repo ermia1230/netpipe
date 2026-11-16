@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "ChatCallApp",
+    "slug": "chat-call-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.chatcallapp"
+    },
+    "android": {
+      "package": "com.yourcompany.chatcallapp"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-status-bar",
+      "expo-secure-store"
+    ]
+  }
+}
